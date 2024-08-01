@@ -1,0 +1,12 @@
+{
+  "token": "",
+  "settings": {
+    "prefixes": ["."],
+    "embed": false,
+    "proxy": ""
+  },
+  "snipers": {
+    "privnote": true,
+    "nitro": true
+  }
+}
