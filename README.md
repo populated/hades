@@ -1,4 +1,4 @@
-# Hades
+# Hades (Reupload)
 ### An advanced multi-purpose Discord self-bot, currently a work in progress.
 #### FYI: I'm tempted to just archive this. I have NO ideas for commands, so unless people start suggesting commands, this is probably never going to be finished. :sob:
 
@@ -12,4 +12,4 @@ And `embedl.ink` got shutdown, fun.
 
 # Credits
 
-Discord: `orjson`, `dancers.`
+Discord: `dancers.`
