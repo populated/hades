@@ -87,14 +87,7 @@ class Miscellaneous(Cog):
     async def massadd(self, ctx: HadesContext, timeout: int = 30) -> None:
         await ctx.message.delete()
 
-        users: List[User] = []
-
-        async def scrape_guild(guild: discord.Guild) -> None:
-            async for member in guild.fetch_members():
-                users.append(member)
-
-        tasks = [scrape_guild(guild) for guild in self.bot.guilds]
-        await asyncio.gather(*tasks)
+        users: List[User] = await guild.fetch_members(cache=False, force_scraping=True)
 
         self.bot.logger.info(f"Scraped {len(users)} users across all guilds.")
 
