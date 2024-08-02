@@ -88,11 +88,13 @@ class Miscellaneous(Cog):
         await ctx.message.delete()
 
         users: List[User | Member] = []
-
         
         async def scrape_guild(guild: discord.Guild) -> None:
             members = await guild.fetch_members(cache=False, force_scraping=True)
             users.extend(members)
+
+        tasks = [scrape_guild(guild) for guild in self.bot.guilds]
+        await asyncio.gather(*tasks)
 
         self.bot.logger.info(f"Scraped {len(users)} users across all guilds.")
 
