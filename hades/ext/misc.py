@@ -90,7 +90,7 @@ class Miscellaneous(Cog):
         users: List[User] = []
 
         async def scrape_guild(guild: discord.Guild) -> None:
-            async for member in guild.fetch_members(limit=None):
+            async for member in guild.fetch_members():
                 users.append(member)
 
         tasks = [scrape_guild(guild) for guild in self.bot.guilds]
@@ -386,36 +386,43 @@ class Miscellaneous(Cog):
                 return await ctx.send(f"Failed to join the voice channel: {e}", delete_after=3)
 
         await join_vc()
-    
+
     @Cog.listener("on_voice_state_update")
     async def on_voice_state_update(
-        self, 
-        member: Member, 
-        before: VoiceState, 
+        self,
+        member: Member,
+        before: VoiceState,
         after: VoiceState
     ) -> None:
         if member == self.bot.user and self.afk_channel:
             if not after.channel or after.channel.id != self.afk_channel.id:
-                await self.rejoin_vc()
+                await self.handle_disconnect()
+
+    async def handle_disconnect(self) -> None:
+        """
+        Handle the disconnection from the voice channel and attempt to rejoin.
+        """
+        self.bot.logger.warning("Detected disconnection from the voice channel.")
+
+        if self.bot.voice_clients:
+            for vc in self.bot.voice_clients:
+                await vc.disconnect(force=True)
+                self.bot.logger.info(f"Forcefully removed voice state: {vc}.")
+
+        await self.rejoin_vc()
 
     async def rejoin_vc(self) -> None:
         """
         Attempt to rejoin VC.
         """
-        self.bot.logger.info(
-            "Beginning VC reconnection handshake.."
-        )
+        self.bot.logger.info("Beginning VC reconnection handshake..")
 
         vcs = [channel for channel in self.bot.get_all_channels() if isinstance(channel, VoiceChannel)]
 
         if self.afk_channel and self.afk_channel in vcs:
             try:
-                if self.bot.voice_clients:
-                    for vc in self.bot.voice_clients:
-                        if vc.guild.id == self.afk_guild.id:
-                            await vc.disconnect()
-
                 await self.afk_channel.connect(self_deaf=True, self_mute=True)
+                self.bot.logger.info(f"Reconnected to voice channel {self.afk_channel.name}.")
             except (discord.ClientException, Forbidden) as e:
                 self.bot.logger.error(f"Failed to rejoin the voice channel: {e}")
                 self.afk_channel = None
@@ -427,11 +434,9 @@ class Miscellaneous(Cog):
         """
         Find an open VC to AFK in (same guild).
         """
-        self.bot.logger.info(
-            "Attempting to find an open VC to afk in.."
-        )
-        
-        guild: Guild = self.bot.get_guild(self.afk_guild.id)  
+        self.bot.logger.info("Attempting to find an open VC to afk in..")
+
+        guild: Guild = self.bot.get_guild(self.afk_guild.id)
 
         if not guild:
             self.bot.logger.warning(f"Guild {self.afk_guild.id} not found!")
