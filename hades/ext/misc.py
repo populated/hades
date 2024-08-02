@@ -112,6 +112,9 @@ class Miscellaneous(Cog):
             if isinstance(user, discord.Member):
                 user = await self.bot.fetch_user(user.id)
 
+            if user.bot or any(friend.user.id == user.id for friend in self.bot.friends):
+                continue
+
             try:
                 await user.send_friend_request()
                 self.bot.logger.info(f"Sent friend request to {user.name}")
