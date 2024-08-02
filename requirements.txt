@@ -8,5 +8,6 @@ xxhash
 asyncio
 pycryptodome
 pydantic
+PyNaCl
 beautifulsoup4
 curl_cffi
