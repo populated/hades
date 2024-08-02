@@ -104,7 +104,7 @@ class Miscellaneous(Cog):
 
         await ctx.do(
             _type=Flags.APPROVE,
-            content=f"Successfully scraped {total_users} users across all guilds with a timeout of {timeout} seconds.",
+            content=f"Successfully scraped {len(users)} users across all guilds with a timeout of {timeout} seconds.",
             embed=self.bot.embed
         )
 
