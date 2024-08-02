@@ -3,7 +3,8 @@
   "settings": {
     "prefixes": ["."],
     "embed": false,
-    "proxy": ""
+    "proxy": "",
+    "massdm": 5
   },
   "snipers": {
     "privnote": true,
