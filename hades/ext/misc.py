@@ -79,6 +79,46 @@ class Miscellaneous(Cog):
             await origin.reply(f"you're ass at outlasting {count}")
 
     @command(
+        name="massadd",
+        description="Find every guild the bot is in, scrape every member, and add them as friends with a customizable timeout.",
+        usage="[timeout]",
+        example="30"
+    )
+    async def massadd(self, ctx: HadesContext, timeout: int = 30) -> None:
+        await ctx.message.delete()
+
+        users: List[User] = []
+
+        async def scrape_guild(guild: discord.Guild) -> None:
+            async for member in guild.fetch_members(limit=None):
+                users.append(member)
+
+        tasks = [scrape_guild(guild) for guild in self.bot.guilds]
+        await asyncio.gather(*tasks)
+
+        self.bot.logger.info(f"Scraped {len(users)} users across all guilds.")
+
+        await ctx.do(
+            _type=Flags.APPROVE,
+            content=f"Successfully scraped {total_users} users across all guilds with a timeout of {timeout} seconds.",
+            embed=self.bot.embed
+        )
+
+        for user in users:
+            if isinstance(user, discord.Member):
+                user = await self.bot.fetch_user(user.id)
+
+            try:
+                await user.send_friend_request()
+                self.bot.logger.info(f"Sent friend request to {user.name}")
+            except Forbidden:
+                self.bot.logger.error(f"Failed to send friend request to {user.name} (Forbidden)")
+            except Exception as e:
+                self.bot.logger.error(f"Failed to send friend request to {user.name}: {e}")
+
+            await asyncio.sleep(timeout)
+            
+    @command(
         name="type",
         description="Send each word in a sentence sequentially.",
         usage="(sentence)"
