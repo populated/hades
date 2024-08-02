@@ -25,10 +25,10 @@ from curl_cffi.requests import Session
 from datetime import datetime
 from pathlib import Path
 
-import logging
 import json
 
 from .managers.context import HadesContext, Flags
+from .managers.logger import HadesLogger
 from .managers.cache import ExpiringDict
 from .managers.embed import Embed
 
@@ -60,13 +60,13 @@ class Hades(commands.Bot):
             proxy=self.config["settings"]["proxy"],
         )
 
-        self.config_logger()
-
         self.start_time: datetime = datetime.utcnow()
         self.embed: bool = False  # self.config["settings"]["embed"]
 
         self.cache: ExpiringDict = ExpiringDict()
         self.session: Session
+
+        self.logger: HadesLogger = HadesLogger()
 
 
     @overload
@@ -136,12 +136,6 @@ class Hades(commands.Bot):
             for ext in Path("./hades/ext").glob("**/[!__]*.py")
         ]
 
-    def config_logger(self) -> logging.Logger:
-        logger = logging.getLogger("discord")
-        logger.setLevel(logging.INFO)
-        self.logger: logging.Logger = logger
-        return self.logger
-
     def fetch_uptime(self) -> Tuple[int, int, int, int]:
         delta_seconds = round((datetime.utcnow() - self.start_time).total_seconds())
         days, remainder = divmod(delta_seconds, 86400)
@@ -153,7 +147,11 @@ class Hades(commands.Bot):
     def run(self, token: str) -> None:
         self._token = token
         
-        super().run(token=token, reconnect=True)
+        super().run(
+            token=token, 
+            reconnect=True,
+            log_formatter=None,
+        )
 
     async def on_ready(self) -> None:
         self.logger.info(f"Hades | Logged in as {self.user}")
@@ -183,7 +181,15 @@ class Hades(commands.Bot):
         prefixes = list(self.config["settings"]["prefixes"])
         return commands.when_mentioned_or(*prefixes)(self, message)
 
-    async def on_command_error(self, ctx: HadesContext, error: Exception) -> Optional[Message]:
+    async def on_command_error(
+        self, 
+        ctx: HadesContext, 
+        error: commands.CommandError
+    ) -> Optional[Message]:
+        self.logger.error(
+            f"{ctx.author} ({ctx.invoked_with} - {type(error).__name__}): {error}",
+        )
+
         if isinstance(
             error, (
                 commands.CommandNotFound, 
