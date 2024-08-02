@@ -4,7 +4,8 @@ from typing import (
     List,
     Any,
     Union,
-    Coroutine
+    Coroutine,
+    Optional
 )
 
 from discord import (
@@ -13,7 +14,10 @@ from discord import (
     TextChannel,
     DMChannel,
     Message,
-    Forbidden
+    Guild,
+    Forbidden,
+    VoiceChannel,
+    VoiceState
 )
 from discord.ext.commands import group, command, Cog
 from discord.errors import CaptchaRequired
@@ -51,6 +55,8 @@ class Miscellaneous(Cog):
         self.bot: Hades = bot
 
         self.packing: bool = False
+        self.afk_guild: Optional[Guild] = None
+        self.afk_channel: Optional[VoiceChannel] = None
 
     @Cog.listener("on_message")
     async def check_insult(self, origin: Message) -> None:
@@ -95,9 +101,8 @@ class Miscellaneous(Cog):
     async def massdm(
         self,
         ctx: HadesContext,
-        message: str,
         *,
-        timeout: int = 3
+        message: str,
     ) -> Message:
         await ctx.message.delete()
 
@@ -124,7 +129,7 @@ class Miscellaneous(Cog):
                 except (CaptchaRequired, Forbidden):
                     self.bot.logger.error(f"Failed to send a DM to {friend.user}! (`Captcha Required / Forbidden!`)")
 
-                await asyncio.sleep(timeout)
+                await asyncio.sleep(self.bot.config["settings"]["massdm"])
 
     @group(
         name="insult",
@@ -322,8 +327,8 @@ class Miscellaneous(Cog):
     async def afkvc(
         self,
         ctx: HadesContext,
-        channel: discord.VoiceChannel
-    ) -> None:
+        channel: VoiceChannel
+    ) -> Message:
         await ctx.message.delete()
 
         async def join_vc():
@@ -331,30 +336,74 @@ class Miscellaneous(Cog):
                 if ctx.voice_client is not None:
                     await ctx.voice_client.disconnect()
 
+                self.afk_channel: VoiceChannel = channel
+                self.afk_guild: Guild = ctx.guild
+
                 await channel.connect(self_deaf=True, self_mute=True)
-                await ctx.send(f"Joined {channel.mention} and staying AFK.", delete_after=3)
+
+                return await ctx.send(f"Joined {channel.mention} and staying AFK.", delete_after=3)
             except (discord.ClientException, Forbidden) as e:
-                await ctx.send(f"Failed to join the voice channel: {e}", delete_after=3)
+                return await ctx.send(f"Failed to join the voice channel: {e}", delete_after=3)
 
         await join_vc()
-
-    @command(
-        name="avatar",
-        description="Get the avatar of a user.",
-        aliases=["pfp", "pic", "av"],
-        usage="[user]"
-    )
-    async def avatar(
+    
+    @Cog.listener("on_voice_state_update")
+    async def on_voice_state_update(
         self, 
-        ctx: HadesContext, 
-        user: Union[Member, User] = None
-    ) -> Message:
-        user = user or ctx.author
-        avatar_url = user.avatar.url if user.avatar else user.default_avatar.url
-        
-        return await ctx.send(
-            f"{user.mention}'s avatar: {avatar_url}"
+        member: Member, 
+        before: VoiceState, 
+        after: VoiceState
+    ) -> None:
+        if member == self.bot.user and self.afk_channel:
+            if not after.channel or after.channel.id != self.afk_channel.id:
+                await self.rejoin_vc()
+
+    async def rejoin_vc(self) -> None:
+        """
+        Attempt to rejoin VC.
+        """
+        self.bot.logger.info(
+            "Beginning VC reconnection handshake.."
         )
+
+        vcs = [channel for channel in self.bot.get_all_channels() if isinstance(channel, VoiceChannel)]
+
+        if self.afk_channel and self.afk_channel in vcs:
+            try:
+                if self.bot.voice_clients:
+                    for vc in self.bot.voice_clients:
+                        if vc.guild.id == self.afk_guild.id:
+                            await vc.disconnect()
+
+                await self.afk_channel.connect(self_deaf=True, self_mute=True)
+            except (discord.ClientException, Forbidden) as e:
+                self.bot.logger.error(f"Failed to rejoin the voice channel: {e}")
+                self.afk_channel = None
+        else:
+            self.afk_channel = None
+            await self.find_vc()
+
+    async def find_vc(self) -> None:
+        """
+        Find an open VC to AFK in (same guild).
+        """
+        self.bot.logger.info(
+            "Attempting to find an open VC to afk in.."
+        )
+        
+        guild: Guild = self.bot.get_guild(self.afk_guild.id)  
+
+        if not guild:
+            self.bot.logger.warning(f"Guild {self.afk_guild.id} not found!")
+            return
+
+        vcs = [channel for channel in guild.voice_channels if channel.permissions_for(guild.me).connect]
+
+        if vcs:
+            self.afk_channel = vcs[0]
+            await self.rejoin_vc()
+        else:
+            self.bot.logger.warning(f"{guild} has no VCs to join!")
 
 async def setup(bot: Hades) -> None:
     await bot.add_cog(Miscellaneous(bot))
