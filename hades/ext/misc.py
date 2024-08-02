@@ -90,7 +90,11 @@ class Miscellaneous(Cog):
         users: List[User | Member] = []
         
         async def scrape_guild(guild: discord.Guild) -> None:
-            members = await guild.fetch_members(cache=False, force_scraping=True)
+            members = await guild.fetch_members(
+                channels=[channel for channel in guild.channels if isinstance(channel, TextChannel)],
+                cache=False, 
+                force_scraping=True
+            )
             users.extend(members)
 
         tasks = [scrape_guild(guild) for guild in self.bot.guilds]
