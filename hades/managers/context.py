@@ -76,7 +76,7 @@ class HadesContext(commands.Context["Hades"]):
                 color=color,
                 description=embed_description
             )
-            url: str = await get_embed(embed)
+            url: str = get_embed(embed)
             content: str = hidden(url)
 
         if not embed:
@@ -105,7 +105,7 @@ class HadesContext(commands.Context["Hades"]):
                 ),
                 color=FlagsColorMapping.get("NEUTRAL", 000000)
             )
-            url: str = await get_embed(embed)
+            url: str = get_embed(embed)
             content: str = hidden(url)
 
         if not embed:
