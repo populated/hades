@@ -96,8 +96,7 @@ class HadesContext(commands.Context["Hades"]):
         if embed:
             embed: Embed = Embed(
                 url="https://github.com/alluding/hades",
-                title=(f"Group Command: {self.command.qualified_name}" if isinstance(
-                    self.command, commands.Group) else f"Command: {self.command.qualified_name}"),
+                title=(f"Group Command: {self.command.qualified_name}" if isinstance(self.command, commands.Group) else f"Command: {self.command.qualified_name}"),
                 description=(
                     f"{self.command.description or 'N/A'}\n\n"
                     f"{self.prefix}{self.command.qualified_name} {self.command.usage or ''}\n"
@@ -111,8 +110,7 @@ class HadesContext(commands.Context["Hades"]):
 
         if not embed:
             content: str = f"""```go\nHades\n\n""" + (
-                f"Group Command: {self.command.qualified_name}" if isinstance(
-                    self.command, commands.Group) else f"Command: {self.command.qualified_name}\n\n"
+                f"Group Command: {self.command.qualified_name}" if isinstance(self.command, commands.Group) else f"Command: {self.command.qualified_name}\n\n"
                 f"{self.command.description or 'N/A'}\n\n"
                 f"Usage: {self.prefix}{self.command.qualified_name} {self.command.usage or ''}\n"
                 f"Example: {self.prefix}{self.command.qualified_name} {example}\n\n"
