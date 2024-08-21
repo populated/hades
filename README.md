@@ -8,7 +8,9 @@
 
 # Custom API/wrapper
 
-And `embedl.ink` got shutdown, fun.
+~~And `embedl.ink` got shutdown, fun~~.
+
+And I found `beta.embedl.ink` :sob:.
 
 # Credits
 
